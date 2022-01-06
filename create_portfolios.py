@@ -1,10 +1,12 @@
+import math
+
 import pandas as pd
 import itertools
 import matplotlib.pyplot as plt
 
 df = pd.read_csv("Data_populated.csv", index_col=False)
 
-portfolio_user_1 = ["AZ", "BL", "AP", "G", "H"]  # Portfolio Tickers
+portfolio_user_1 = ["BF", "AF", "BE", "AI", "M"]  # Portfolio Tickers
 
 
 # Subset of df
@@ -35,11 +37,10 @@ def get_sustainability_rating(df, portfolio_user_1):
 # Recommend Tickers based on the percent of change
 def recommend_tickers(percent_of_change, portfolio_user_1, df):
     number_of_tickers_to_recommend = round((percent_of_change / 100) * len(portfolio_user_1))
-    print("The number of tickers that the user wants in the portfolio to be changed: ", number_of_tickers_to_recommend)
+    print("The number of tickers that the user wants to change in the portfolio: ", number_of_tickers_to_recommend)
     df_without_portfolio_tickers = filter_rows_by_values(df, "TICKER", portfolio_user_1)
     recommended_df = df_without_portfolio_tickers.nsmallest(number_of_tickers_to_recommend, ['Carbon_Footprint'])
-    print("The recommended tickers to change in the portfolio are:",
-          recommended_df['TICKER'].to_string(index=False).replace("\n", ","))
+    # print("The recommended tickers to change in the portfolio are:", recommended_df['TICKER'].to_string(index=False).replace("\n", ","))
     return recommended_df
 
 
@@ -90,7 +91,7 @@ def bar_graph_recommendations(original_portfolio, recommended_portfolio, number_
 
     # Adding Xticks
     plt.xlabel('Tickers', fontweight='bold', fontsize=15)
-    plt.ylabel('Carbon Footprint', fontweight='bold', fontsize=15)
+    plt.ylabel('Carbon Footprint (tCO\u2082e/mUSD)', fontweight='bold', fontsize=15)
     plt.xticks([original_bars[1][0], recommended_bars[1][0]],
                ['Original Portfolio', 'Recommended Portfolio'])
     plt.legend()
@@ -110,22 +111,25 @@ def change_portfolio(recommended_df, df, portfolio_user_1):
     set2 = set(removed_portfolio_user_1)
     diff_tickers_dict = dict(sorted(dict(set1 ^ set2).items(), key=lambda item: item[1]))
     recommended_ticker, portfolio_tickers = splitDict(diff_tickers_dict, len(recommended_df))
-    print("The portfolio tickers recommended to be replaced are: ", ','.join(list(portfolio_tickers.keys())))
+    print("The tickers in the portfolio to be replaced are: ", ','.join(list(portfolio_tickers.keys())))
+    print("The tickers to be replaced with are: ", ','.join(list(recommended_ticker.keys())))
     bar_graph_recommendations(sorted_portfolio_user_1, removed_portfolio_user_1, len(recommended_df))
     changed_portfolio_user_1 = []
     for ticker in removed_portfolio_user_1:
         changed_portfolio_user_1.append(ticker[0])
     expected_sustainability_rating, expected_carbon_score = get_sustainability_rating(df, changed_portfolio_user_1)
     print("The increased sustainability rating will be: ", expected_sustainability_rating)
-    print("The increased carbon score is: ",
-          normalize_carbon_score(expected_carbon_score, df, len(changed_portfolio_user_1)))
+    normalized_score = normalize_carbon_score(expected_carbon_score, df, len(changed_portfolio_user_1))
+    print("The increased carbon score is: ", normalized_score)
     print("The decreased average carbon footprint for the recommended portfolio is: ", expected_carbon_score)
+    return changed_portfolio_user_1, expected_sustainability_rating, normalized_score, expected_carbon_score
 
 
 # Working as a user
 current_sustainability_rating, current_carbon_score = get_sustainability_rating(df, portfolio_user_1)
 print("The current sustainability rating is: ", current_sustainability_rating)
-print("The current carbon score is: ", normalize_carbon_score(current_carbon_score, df, len(portfolio_user_1)))
+current_score = normalize_carbon_score(current_carbon_score, df, len(portfolio_user_1))
+print("The current carbon score is: ", current_score)
 print("The average carbon footprint for the portfolio is: ", current_carbon_score)
 
 # Better Combination of Tickers for higher Sustainability Rating based on % of change
@@ -134,7 +138,19 @@ print("The percentage of change to the portfolio as requested by the user: ", pe
 recommended_df = recommend_tickers(percent_of_change, portfolio_user_1, df)
 
 # Increase in the sustainability rating with the added change in portfolio
-change_portfolio(recommended_df, df, portfolio_user_1)
+recommended_portfolio, recommended_sustainability_rating, recommended_score, recommended_carbon_score = change_portfolio(
+    recommended_df, df, portfolio_user_1)
+print("##################################################################")
+print("The current portfolio of the user is: ", ",".join(portfolio_user_1))
+print("The recommended portfolio has reduced ~", math.ceil(current_carbon_score - recommended_carbon_score),
+      "tonnes of carbon dioxide per million USD")
+print("******************************************************************")
+print("The recommended portfolio for the user with their percentage of change: ", ",".join(recommended_portfolio))
+print("The sustainability rating has increased by ",
+      round((recommended_sustainability_rating - current_sustainability_rating), 2) * 100, "%")
+print("The carbon footprint score has increased by ", round((recommended_score - current_score), 2) * 100, "%")
+print("******************************************************************")
+print("##################################################################")
 
 # Graph with two lines
 
