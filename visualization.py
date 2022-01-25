@@ -1,10 +1,10 @@
-# import potential_portfolios
+import potential_portfolios
 import matplotlib.pyplot as plt
 import pandas as pd
 
-# class PortfolioGraph:
-#     def __init__(self):
-#         self.client = potential_portfolios.client
+class PortfolioGraph:
+    def __init__(self):
+        self.client = potential_portfolios.client
 
 
 data = pd.read_csv("Visualization.csv", index_col=False)
